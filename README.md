@@ -1,5 +1,7 @@
 # Motor Winding Scheme Calculator
 
+A single-file HTML tool for generating and evaluating three-phase winding schemes for electric machine stators. It calculates winding factors, supports custom schemas, visualizes slot/phase allocation, and renders a stator diagram directly in the browser.
+
 ## Features
 
 - Calculate winding schemes from slot and pole combinations
@@ -61,12 +63,6 @@ These depend on additional geometric inputs such as stator diameter, slot openin
 
 ## Usage
 
-Open the HTML file in a browser, enter the machine parameters, and inspect:
+Open the HTML file in a browser and then enter the machine parameter
 
-- calculated winding scheme
-- editable turn distribution
-- winding factor result
-- harmonic factor table
-- stator visualization
-
-- ## Thanks to Felix Niessen
+# Since bavaria-direct.co.za has gone offline, I have decided to port their calculator. Thanks to Christo for the files.
