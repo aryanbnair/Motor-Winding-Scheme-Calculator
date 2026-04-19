@@ -1,0 +1,1597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Winding Scheme Calculator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0a0a;
+            --card-bg: rgba(25, 25, 25, 0.7);
+            --border: rgba(255, 255, 255, 0.1);
+            --text: #e0e0e0;
+            --text-dim: #888;
+            --phase-a: #ff3366;
+            --phase-b: #33ccff;
+            --phase-c: #33ff99;
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            
+            /* Scrollbar Variables */
+            --scroll-track: rgba(0, 0, 0, 0.3);
+            --scroll-thumb: rgba(255, 255, 255, 0.15);
+            --scroll-thumb-hover: rgba(255, 255, 255, 0.25);
+            
+            /* Inputs */
+            --input-bg: #151515;
+            --input-text: #fff;
+            
+            /* Table */
+            --wf-green-1: #339966;
+            --wf-green-2: #55BB88;
+            --wf-red-1: #CC0000;
+            --wf-red-2: #FF2222;
+        }
+
+        body.light-theme {
+            --bg: #f5f7fa;
+            --card-bg: #ffffff;
+            --border: #e2e8f0;
+            --text: #1e293b;
+            --text-dim: #64748b;
+            
+            --scroll-track: rgba(0, 0, 0, 0.05);
+            --scroll-thumb: rgba(0, 0, 0, 0.2);
+            --scroll-thumb-hover: rgba(0, 0, 0, 0.3);
+            
+            --input-bg: #f8fafc;
+            --input-text: #0f172a;
+            
+            --phase-a: #e11d48;
+            --phase-b: #0284c7;
+            --phase-c: #16a34a;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: var(--font-sans);
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+            padding: 20px;
+            gap: 20px;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: var(--scroll-track); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: var(--scroll-thumb); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--scroll-thumb-hover); }
+
+        .header { display: flex; justify-content: space-between; align-items: center; padding: 0 10px; }
+        .header h1 { font-size: 18px; font-weight: 500; letter-spacing: 1px; color: var(--text-dim); text-transform: uppercase; }
+        
+        .header-controls { display: flex; gap: 15px; align-items: center; }
+        .theme-toggle, .locale-toggle button {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .locale-toggle button.active {
+            background: var(--border);
+            color: var(--text);
+        }
+        .theme-toggle:hover, .locale-toggle button:hover {
+            background: var(--border);
+            color: var(--text);
+        }
+
+        .bento-grid {
+            display: grid;
+            grid-template-columns: 320px 1fr 380px;
+            grid-template-rows: 1fr;
+            gap: 20px;
+            flex-grow: 1;
+            min-height: 0;
+        }
+
+        @media (max-width: 1200px) {
+            .bento-grid {
+                grid-template-columns: 300px 1fr;
+                grid-template-rows: auto auto;
+            }
+            .right-panel { grid-column: 1 / -1; }
+        }
+
+        .left-panel, .right-panel, .main-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            overflow-y: auto;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+        body.light-theme .card {
+            box-shadow: 0 4px 15px rgba(0,0,0,0.03), 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .card-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-dim);
+            margin-bottom: 16px;
+            font-weight: 600;
+        }
+
+        .input-group { margin-bottom: 16px; }
+        .input-label { font-size: 11px; margin-bottom: 6px; display: block; color: var(--text-dim); }
+        .input-control {
+            width: 100%;
+            background: var(--input-bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 8px 12px;
+            color: var(--input-text);
+            font-size: 14px;
+            font-family: monospace;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .input-control:focus { border-color: var(--phase-b); }
+        select.input-control { font-family: inherit; }
+
+        .visualizer-container {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            position: relative;
+            overflow-y: auto;
+            padding: 16px;
+            min-height: 350px;
+        }
+        .visualizer-container .card-title { position: sticky; top: 0; left: 0; align-self: flex-start; z-index: 10; background: var(--card-bg); padding-right: 10px; border-radius: 4px; backdrop-filter: blur(5px); }
+
+        canvas {
+            display: block;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            flex-shrink: 0;
+        }
+
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .stat-item {
+            padding: 15px;
+            background: rgba(125, 125, 125, 0.05);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            position: relative;
+        }
+        .stat-label { font-size: 11px; color: var(--text-dim); margin-bottom: 4px; }
+        .stat-value { font-size: 20px; font-weight: 400; font-family: monospace; }
+
+        .scheme-display {
+            display: flex;
+            gap: 4px;
+            padding: 5px 0;
+            overflow-x: auto;
+        }
+        .scheme-display span {
+            min-width: 32px;
+            height: 48px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: monospace;
+            font-size: 14px;
+            position: relative;
+            background: rgba(125,125,125,0.05);
+            flex-shrink: 0;
+            padding-bottom: 12px;
+        }
+        .scheme-display span input.turn-input {
+            position: absolute;
+            bottom: 2px;
+            width: 80%;
+            background: var(--input-bg);
+            border: 1px solid var(--border);
+            color: var(--input-text);
+            font-size: 9px;
+            text-align: center;
+            padding: 1px 0;
+            border-radius: 2px;
+            outline: none;
+        }
+        .scheme-display span input.turn-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+        .wf-table-container {
+            flex-grow: 1;
+            overflow-y: auto;
+            margin-top: 10px;
+            font-size: 11px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+        .wf-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+        .wf-table th, .wf-table td {
+            padding: 6px 8px;
+            border-bottom: 1px solid var(--border);
+            border-right: 1px solid var(--border);
+        }
+        .wf-table th { 
+            color: var(--text-dim); 
+            font-weight: 500; 
+            position: sticky; 
+            top: 0; 
+            background: var(--card-bg); 
+            backdrop-filter: blur(10px); 
+            z-index: 2;
+        }
+        .wf-table tbody tr:nth-child(even) { background: rgba(125, 125, 125, 0.02); }
+        .wf-table tbody tr:hover { background: rgba(125, 125, 125, 0.05); }
+        
+        .wf-bar {
+            height: 10px;
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 8px;
+            border-radius: 2px;
+        }
+
+        .scheme-display span.color-A { border-bottom: 3px solid var(--phase-a); color: var(--phase-a); }
+        .scheme-display span.color-B { border-bottom: 3px solid var(--phase-b); color: var(--phase-b); }
+        .scheme-display span.color-C { border-bottom: 3px solid var(--phase-c); color: var(--phase-c); }
+        .scheme-display span.color-dash { border: 1px dashed var(--border); color: var(--text-dim); }
+        .scheme-display span.color-pipe { min-width: 10px; border: none; background: transparent; color: var(--border); font-weight: 300; }
+
+        .error-msg {
+            color: var(--phase-a);
+            margin-top: 1rem;
+            font-size: 13px;
+            padding: 1rem;
+            background: rgba(255,51,102,0.1);
+            border: 1px solid rgba(255,51,102,0.3);
+            border-radius: 8px;
+            display: none;
+        }
+
+        .footer-info { font-size: 10px; color: var(--text-dim); text-align: center; margin-top: 5px; }
+
+    </style>
+</head>
+<body class="dark-theme">
+
+    <div class="header">
+        <h1 id="app-title">Winding Scheme Calculator <span style="color:var(--text-dim); font-size: 12px; margin-left: 5px;">v2.9 (Legacy Edition)</span></h1>
+        <div class="header-controls">
+            <button class="theme-toggle" id="btn-theme" onclick="toggleTheme()">☀️ Light</button>
+            <div class="locale-toggle">
+                <button class="lang-btn active" onclick="setLang('en')">EN</button>
+                <button class="lang-btn" onclick="setLang('de')">DE</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="bento-grid">
+        <div class="left-panel">
+            <div class="card">
+                <div class="card-title" id="lbl-config-title">Configuration</div>
+
+                <div id="group-slots" class="input-group">
+                    <label id="lbl-slots" class="input-label" for="in-slots">Slots (N)</label>
+                    <input type="number" class="input-control" id="in-slots" value="6" min="3" step="3">
+                </div>
+
+                <div class="input-group">
+                    <label id="lbl-poles" class="input-label" for="in-poles">Poles (P)</label>
+                    <input type="number" class="input-control" id="in-poles" value="4" min="2" step="2">
+                </div>
+
+                <div id="group-layer" class="input-group">
+                    <label id="lbl-layer" class="input-label" for="in-layer">Layer Type</label>
+                    <select id="in-layer" class="input-control">
+                        <option value="double" id="opt-double">Double Layer</option>
+                        <option value="single" id="opt-single">Single Layer (SPS)</option>
+                    </select>
+                </div>
+
+                <div class="input-group" id="group-shortening" style="display: none;">
+                    <label id="lbl-shortening" class="input-label" for="in-shortening">Shortening (Verkürzung)</label>
+                    <input type="number" class="input-control" id="in-shortening" value="0" min="0" step="1">
+                </div>
+
+                <div class="input-group" id="group-custom" style="display: none;">
+                    <label id="lbl-custom" class="input-label" for="in-custom">Custom Scheme (Defines Slots)</label>
+                    <input type="text" class="input-control" id="in-custom" placeholder="e.g., AabBCc">
+                </div>
+
+                <div class="input-group" id="group-conn">
+                    <label id="lbl-conn" class="input-label" for="in-conn">Connection</label>
+                    <select id="in-conn" class="input-control">
+                        <option value="-">D (Delta)</option>
+                        <option value="Y">Y (Star)</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label id="lbl-phases" class="input-label" for="in-phases">Phase Naming</label>
+                    <select id="in-phases" class="input-control">
+                        <option value="ABC">A - B - C</option>
+                        <option value="UVW">U - V - W</option>
+                    </select>
+                </div>
+
+                <div id="advanced-params" style="padding-top: 10px; border-top: 1px solid var(--border); margin-top: 10px;">
+                    <div class="input-group">
+                        <label class="input-label" id="lbl-adv-slot-factor">Involving the slot factor</label>
+                        <div style="display:flex; gap:8px; font-size:11px; align-items:center;">
+                            <span style="color:var(--text-dim)" id="lbl-adv-stator-d">Stator d:</span>
+                            <input type="number" id="in-stator-d" class="input-control" style="width:55px; padding:4px;" placeholder="mm">
+                            <span style="color:var(--text-dim)" id="lbl-adv-slot-o">Slot O:</span>
+                            <input type="number" id="in-slot-b" class="input-control" style="width:55px; padding:4px;" placeholder="mm">
+                            <label style="color:var(--text-dim); display:flex; align-items:center; cursor:pointer;"><input type="checkbox" id="chk-slot-factor" style="margin-right:4px;"> <span id="lbl-adv-table1">Table</span></label>
+                        </div>
+                    </div>
+                    <div class="input-group" style="margin-bottom:0;">
+                        <label class="input-label" id="lbl-adv-skew">Skewed slots</label>
+                        <div style="display:flex; gap:8px; font-size:11px; align-items:center;">
+                            <span style="color:var(--text-dim)" id="lbl-adv-skew-slots">Slots:</span>
+                            <input type="number" id="in-skew" class="input-control" style="width:60px; padding:4px;" placeholder="count">
+                            <label style="color:var(--text-dim); display:flex; align-items:center; cursor:pointer;"><input type="checkbox" id="chk-skew" style="margin-right:4px;"> <span id="lbl-adv-table2">Table</span></label>
+                        </div>
+                    </div>
+                </div>
+
+                <button id="btn-toggle-custom" style="background: transparent; border: none; color: var(--phase-b); margin-top: 10px; text-decoration: none; cursor: pointer; font-size: 11px; text-align: left; opacity: 0.8; font-weight: 500;">&rarr; Advanced Custom Scheme</button>
+
+                <div class="error-msg" id="error-msg"></div>
+            </div>
+            
+            <div class="card" id="results-container">
+                <div class="card-title" id="lbl-calc-title">Calculated Parameters</div>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div id="lbl-cogging" class="stat-label">Cogging Steps</div>
+                        <div class="stat-value" id="val-cogging">--</div>
+                        <div id="lbl-lcm-formula" style="font-size: 10px; color: var(--text-dim); margin-top: 4px; font-style: italic;"></div>
+                    </div>
+                    <div class="stat-item">
+                        <div id="lbl-wf" class="stat-label">Winding Factor</div>
+                        <div class="stat-value" id="val-wf">--</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-panel">
+            <div class="card scheme-row">
+                <div class="card-title" id="lbl-scheme-title" style="margin-bottom: 5px;">Winding Scheme <span style="opacity: 0.6; text-transform: none;">(Enter turns in inputs below)</span></div>
+                <div class="scheme-display" id="val-schema">
+                </div>
+            </div>
+
+            <div class="card visualizer-container" id="vis-container">
+                <div class="card-title" id="lbl-vis-title">Stator Visualization</div>
+                <canvas id="statorCanvas"></canvas>
+                <canvas id="statorCanvas2" style="margin-top: 30px;"></canvas>
+            </div>
+        </div>
+
+        <div class="right-panel">
+            <div class="card" id="wf-table-card" style="display: flex; flex-direction: column; height: 100%;">
+                <div class="card-title" id="lbl-table-title" style="flex-shrink: 0;">Winding factors for this winding scheme</div>
+                <div class="wf-table-container" id="wf-table-container">
+                </div>
+            </div>
+        </div>
+    </div>
+			
+    <script>
+        const I18N = {
+            en: {
+                title: "Winding Scheme Calculator",
+                config: "Configuration",
+                slots: "Slots (N)",
+                poles: "Poles (P)",
+                layer: "Layer Type",
+                shortening: "Shortening (Verkürzung)",
+                customLabel: "Custom Scheme (Defines Slots)",
+                conn: "Connection",
+                phases: "Phase Naming",
+                single: "Single Layer (SPS)",
+                double: "Double Layer",
+                calcParams: "Calculated Parameters",
+                cogging: "Cogging Steps",
+                wf: "Winding Factor",
+                schemeTitle: "Winding Scheme",
+                schemeSub: "Enter turns in inputs below",
+                visTitle: "Stator Visualization",
+                tableTitle: "Winding factors for this winding scheme",
+                thPoles: "Magnet Poles",
+                thTime: "time",
+                thWf: "Winding factor",
+                advSlotFactor: "Involving the slot factor",
+                advStatorD: "Stator d:",
+                advSlotO: "Slot O:",
+                advTable: "Table",
+                advSkew: "Skewed slots",
+                advSkewSlots: "Slots:",
+                btnAdvanced: "Advanced Custom Scheme",
+                btnSimple: "Simple Generator",
+                errDiv3: "Number of slots must be divisible by 3!",
+                errPoles: "Number of magnet poles must be even!",
+                errEqual: "Magnet pole number and slot number must be different!",
+                errUnbal: "Unbalanced solution!",
+                errUnbalWF: "Fluctuates!"
+            },
+            de: {
+                title: "Wicklungs - Rechner",
+                config: "Konfiguration",
+                slots: "Nuten (N)",
+                poles: "Pole (P)",
+                layer: "Schicht",
+                shortening: "Verkürzung",
+                customLabel: "Eig. Schema",
+                conn: "Stern/Dreieck",
+                phases: "Phasenname",
+                single: "Einschicht (SPS)",
+                double: "Zweischicht",
+                calcParams: "Berechnete Parameter",
+                cogging: "Rastungen /Umdr.",
+                wf: "Wickelfaktor",
+                schemeTitle: "Bewicklungsschema",
+                schemeSub: "Windungen unten eingeben",
+                visTitle: "Stator Ansicht",
+                tableTitle: "Wickelfaktoren für dieses Bewicklungschema",
+                thPoles: "Pole",
+                thTime: "Zeit",
+                thWf: "Wickelfaktor",
+                advSlotFactor: "Nutungsfaktor einbeziehen",
+                advStatorD: "Stator D:",
+                advSlotO: "Nut B:",
+                advTable: "in Tabelle",
+                advSkew: "Schrägung der Nuten",
+                advSkewSlots: "Nuten:",
+                btnAdvanced: "Erweitert (Eigenes Schema)",
+                btnSimple: "Einfach",
+                errDiv3: "Nutanzahl muss durch 3 teilbar sein!",
+                errPoles: "Polanzahl muss gerade sein!",
+                errEqual: "Polanzahl muss ungleich Nutanzahl sein!",
+                errUnbal: "Lösung unausgewogen!",
+                errUnbalWF: "Schwankend!"
+            }
+        };
+
+        let currentLang = 'en';
+        let isLightMode = false;
+        
+        const el = id => document.getElementById(id);
+        const group_slots = el('group-slots');
+        const in_slots = el('in-slots');
+        const in_poles = el('in-poles');
+        const group_layer = el('group-layer');
+        const in_layer = el('in-layer');
+        const in_shortening = el('in-shortening');
+        const group_shortening = el('group-shortening');
+        const group_conn = el('group-conn');
+        const in_conn = el('in-conn');
+        const in_phases = el('in-phases');
+        const in_custom = el('in-custom');
+        const group_custom = el('group-custom');
+        const adv_params = el('advanced-params');
+        const btn_toggle_custom = el('btn-toggle-custom');
+        const in_stator_d = el('in-stator-d');
+        const in_slot_b = el('in-slot-b');
+        const chk_slot_factor = el('chk-slot-factor');
+        const in_skew = el('in-skew');
+        const chk_skew = el('chk-skew');
+        const err_msg = el('error-msg');
+        const res_container = el('results-container');
+        const visContainer = el('vis-container');
+        const canvas = el('statorCanvas');
+        const canvas2 = el('statorCanvas2');
+
+        let isCustomMode = false;
+
+        function toggleTheme() {
+            isLightMode = !isLightMode;
+            if (isLightMode) {
+                document.body.classList.remove('dark-theme');
+                document.body.classList.add('light-theme');
+                el('btn-theme').innerText = '🌙 Dark';
+            } else {
+                document.body.classList.remove('light-theme');
+                document.body.classList.add('dark-theme');
+                el('btn-theme').innerText = '☀️ Light';
+            }
+            requestAnimationFrame(() => renderStator(lastN, lastP, lastSchema, lastDistributed, in_conn.value, in_phases.value));
+        }
+
+        btn_toggle_custom.addEventListener('click', () => {
+            isCustomMode = !isCustomMode;
+            if (isCustomMode) {
+                group_custom.style.display = 'block';
+                group_slots.style.display = 'none';
+                group_layer.style.display = 'none';
+                group_shortening.style.display = 'none';
+                btn_toggle_custom.innerHTML = '&larr; ' + I18N[currentLang].btnSimple;
+                
+                // Smart Pre-Fill based on legacy behavior
+                if (lastSchema && in_custom.value === '') {
+                    in_custom.value = lastSchema;
+                }
+            } else {
+                group_custom.style.display = 'none';
+                group_slots.style.display = 'block';
+                group_layer.style.display = 'block';
+                btn_toggle_custom.innerHTML = '&rarr; ' + I18N[currentLang].btnAdvanced;
+            }
+            calculate();
+        });
+
+        function setLang(lang) {
+            currentLang = lang;
+            document.querySelectorAll('.lang-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.innerText.toLowerCase() === lang);
+            });
+            el('app-title').innerHTML = I18N[lang].title + ' <span style="color:var(--text-dim); font-size: 12px; margin-left: 5px;">v2.9 (Web Edition)</span>';
+            el('lbl-config-title').innerText = I18N[lang].config;
+            el('lbl-slots').innerText = I18N[lang].slots;
+            el('lbl-poles').innerText = I18N[lang].poles;
+            el('lbl-layer').innerText = I18N[lang].layer;
+            el('lbl-shortening').innerText = I18N[lang].shortening;
+            el('lbl-custom').innerText = I18N[lang].customLabel;
+            el('lbl-conn').innerText = I18N[lang].conn;
+            el('lbl-phases').innerText = I18N[lang].phases;
+            el('opt-single').innerText = I18N[lang].single;
+            el('opt-double').innerText = I18N[lang].double;
+            el('lbl-calc-title').innerText = I18N[lang].calcParams;
+            el('lbl-cogging').innerText = I18N[lang].cogging;
+            el('lbl-wf').innerText = I18N[lang].wf;
+            el('lbl-scheme-title').innerHTML = I18N[lang].schemeTitle + ' <span style="opacity: 0.6; text-transform: none;">(' + I18N[lang].schemeSub + ')</span>';
+            el('lbl-vis-title').innerText = I18N[lang].visTitle;
+            el('lbl-table-title').innerText = I18N[lang].tableTitle;
+            el('lbl-adv-slot-factor').innerText = I18N[lang].advSlotFactor;
+            el('lbl-adv-stator-d').innerText = I18N[lang].advStatorD;
+            el('lbl-adv-slot-o').innerText = I18N[lang].advSlotO;
+            el('lbl-adv-table1').innerText = I18N[lang].advTable;
+            el('lbl-adv-skew').innerText = I18N[lang].advSkew;
+            el('lbl-adv-skew-slots').innerText = I18N[lang].advSkewSlots;
+            el('lbl-adv-table2').innerText = I18N[lang].advTable;
+            
+            if (isCustomMode) {
+                btn_toggle_custom.innerHTML = '&larr; ' + I18N[lang].btnSimple;
+            } else {
+                btn_toggle_custom.innerHTML = '&rarr; ' + I18N[lang].btnAdvanced;
+            }
+
+            calculate();
+        }
+
+        function lcm(a, b) {
+            let x = a, y = b;
+            while (x < y || x > y) {
+                if (x - y < 0) x += a;
+                else y += b;
+            }
+            return x;
+        }
+
+        let currentTurns = [];
+
+        function buildSchemaDOM(schema, naming) {
+            let result = '';
+            let validCharIdx = 0;
+            for(let i=0; i<schema.length; i++) {
+                let c = schema[i];
+                let displayChar = c;
+                if (naming === 'UVW') {
+                    if(c === 'A') displayChar = 'U';
+                    else if(c === 'B') displayChar = 'V';
+                    else if(c === 'C') displayChar = 'W';
+                    else if(c === 'a') displayChar = 'u';
+                    else if(c === 'b') displayChar = 'v';
+                    else if(c === 'c') displayChar = 'w';
+                }
+
+                if(c === '-' || c === '/') {
+                    result += `<span class="color-dash">${displayChar}</span>`;
+                } else if(c === '|') {
+                    result += `<span class="color-pipe">|</span>`;
+                } else {
+                    let klass = 'color-' + c.toUpperCase();
+                    let tVal = currentTurns[validCharIdx] !== undefined ? currentTurns[validCharIdx] : 1;
+                    if (currentTurns[validCharIdx] === undefined) currentTurns[validCharIdx] = 1;
+                    
+                    result += `<span class="${klass}">${displayChar}<input type="number" step="1" min="1" class="turn-input" value="${tVal}" data-idx="${validCharIdx}"></span>`;
+                    validCharIdx++;
+                }
+            }
+            return result;
+        }
+
+        function getTurnsArray() {
+            let inputs = document.querySelectorAll('.turn-input');
+            let arr = [];
+            inputs.forEach(inp => {
+                arr.push(parseInt(inp.value) || 1);
+            });
+            return arr.length ? arr : currentTurns;
+        }
+
+        function calcWF(schema, isDistributed, N, P, turnsArr = []) {
+            const calcForT = (tVal) => {
+                let Fasen = {
+                    'a': Math.sin(tVal * 2 * Math.PI),
+                    'b': Math.sin(tVal * 2 * Math.PI + (2 * Math.PI)/3),
+                    'c': Math.sin(tVal * 2 * Math.PI - (2 * Math.PI)/3),
+                    '-': 0
+                };
+                
+                let Strombelag = [];
+                let turnMap = [];
+                let tidx = 0;
+                for(let k=0; k<N; k++){
+                    if(schema[k] !== '-' && schema[k] !== '/'){
+                        turnMap[k] = turnsArr[tidx] || 1;
+                        tidx++;
+                    } else {
+                        turnMap[k] = 0;
+                    }
+                }
+
+                if (!isDistributed) {
+                    for (let i=0; i<N; i++) {
+                        let ch = schema[i];
+                        let lower = ch.toLowerCase();
+                        let wert1 = Fasen[lower] || 0;
+                        if (ch === lower) wert1 *= -1;
+                        wert1 *= turnMap[i];
+                        
+                        let prevIdx = i === 0 ? N - 1 : i - 1;
+                        let prevCh = schema[prevIdx];
+                        let prevLower = prevCh.toLowerCase();
+                        let wert2 = Fasen[prevLower] || 0;
+                        if (prevCh !== prevLower) wert2 *= -1; 
+                        wert2 *= turnMap[prevIdx];
+                        
+                        if (wert1 !== 0 && wert2 !== 0) {
+                            Strombelag[i] = (wert1 + wert2) / 2;
+                        } else {
+                            Strombelag[i] = (wert1 + wert2);
+                        }
+                    }
+                } else {
+                    let NutBelag = schema.split('|').filter(s => s.length > 0);
+                    let turnIdx = 0;
+                    for (let i=0; i<N; i++) {
+                        if (!NutBelag[i]) {
+                             Strombelag[i] = 0;
+                             continue;
+                        }
+                        let ch1 = NutBelag[i][0];
+                        let val1 = Fasen[ch1.toLowerCase()] || 0;
+                        if (ch1 === ch1.toLowerCase()) val1 *= -1;
+                        
+                        let tWeight1 = 1;
+                        if (ch1 !== '-') { tWeight1 = turnsArr[turnIdx] || 1; turnIdx++; }
+
+                        if (NutBelag[i].length > 1 && NutBelag[i][1] !== '-') {
+                            let ch2 = NutBelag[i][1];
+                            let val2 = Fasen[ch2.toLowerCase()] || 0;
+                            if (ch2 === ch2.toLowerCase()) val2 *= -1;
+                            
+                            let tWeight2 = turnsArr[turnIdx] || 1; turnIdx++;
+
+                            Strombelag[i] = (val1*tWeight1 + val2*tWeight2) / 2;
+                        } else {
+                            Strombelag[i] = val1 * tWeight1;
+                        }
+                    }
+                }
+                
+                let n = P / 2;
+                let zwRe = 0, zwIm = 0;
+                for (let x=0; x<N; x++) {
+                    zwRe += (Strombelag[x] / N) * Math.sin(n * 2 * Math.PI * x / N);
+                    zwIm += (Strombelag[x] / N) * Math.cos(n * 2 * Math.PI * x / N);
+                }
+                
+                let WF = Math.sqrt(Math.pow(zwIm * 2, 2) + Math.pow(zwRe * 2, 2));
+                return Math.round(WF * 100000) / 100000;
+            };
+
+            let wf1 = calcForT(0.25);
+            let wf2 = calcForT(0.55);
+            if (Math.abs(wf1 - wf2) > 0.0001) return { wf1: wf1, wf2: wf2, unbalanced: true };
+            return { wf1: wf1, wf2: wf2, unbalanced: false };
+        }
+
+        function generateWFTable(schema, isDistributed, N) {
+            const tableContainer = el('wf-table-container');
+            let turnsArr = getTurnsArray();
+            let html = '<table class="wf-table"><thead><tr><th width="50">' + I18N[currentLang].thPoles + '</th><th width="40">' + I18N[currentLang].thTime + '</th><th>' + I18N[currentLang].thWf + '</th></tr></thead><tbody>';
+            
+            let useSlot = chk_slot_factor.checked;
+            let statorD = parseFloat(in_stator_d.value);
+            let slotB = parseFloat(in_slot_b.value);
+            let validSlot = useSlot && !isNaN(statorD) && !isNaN(slotB) && statorD > 0 && slotB > 0;
+
+            let useSkew = chk_skew.checked;
+            let skewVal = parseFloat(in_skew.value);
+            let validSkew = useSkew && !isNaN(skewVal) && skewVal > 0;
+
+            let maxHarmonic = N * 2; 
+            for (let h = 1; h <= maxHarmonic; h++) {
+                let p = h * 2;
+                let data = calcWF(schema, isDistributed, N, p, turnsArr);
+                
+                let wf1 = data.wf1;
+                let wf2 = data.wf2;
+
+                if (validSlot) {
+                    let factor = Math.sin(h * slotB / statorD) / (h * slotB / statorD);
+                    wf1 *= factor;
+                    wf2 *= factor;
+                }
+                
+                if (validSkew) {
+                    let factor = Math.sin(skewVal * Math.PI * h / N) / (skewVal * Math.PI * h / N);
+                    wf1 *= factor;
+                    wf2 *= factor;
+                }
+
+                wf1 = Math.round(wf1 * 100000) / 100000;
+                wf2 = Math.round(wf2 * 100000) / 100000;
+                
+                let isUnbalanced = Math.abs(wf1 - wf2) > 0.0001;
+                let w1Pct = Math.min(100, Math.abs(wf1) * 100);
+                let w2Pct = Math.min(100, Math.abs(wf2) * 100);
+                
+                let color1 = isUnbalanced ? 'var(--wf-red-1)' : 'var(--wf-green-1)';
+                let color2 = isUnbalanced ? 'var(--wf-red-2)' : 'var(--wf-green-2)';
+
+                let trStyle = (p === parseInt(in_poles.value)) ? 'style="background: rgba(125,125,125,0.1);"' : '';
+
+                html += `<tr ${trStyle}>
+                    <td rowspan="2" style="border-right: 1px solid var(--border); text-align: center;">${p}</td>
+                    <td style="border-right: 1px solid var(--border);">0.25</td>
+                    <td>
+                        ${wf1 > 0 ? `<div class="wf-bar" style="width: ${w1Pct}%; background-color: ${color1};"></div>` : ''}
+                        ${wf1 === 0 ? '0' : wf1.toFixed(5)}
+                    </td>
+                </tr>
+                <tr ${trStyle}>
+                    <td style="border-right: 1px solid var(--border);">0.55</td>
+                    <td>
+                        ${wf2 > 0 ? `<div class="wf-bar" style="width: ${w2Pct}%; background-color: ${color2};"></div>` : ''}
+                        ${wf2 === 0 ? '0' : wf2.toFixed(5)}
+                    </td>
+                </tr>`;
+            }
+            html += '</tbody></table>';
+            tableContainer.innerHTML = html;
+        }
+
+        function showError(msg) {
+            err_msg.innerText = msg;
+            err_msg.style.display = 'block';
+            res_container.style.opacity = '0.3';
+            canvas.style.opacity = '0';
+            canvas2.style.opacity = '0';
+        }
+
+        function hideError() {
+            err_msg.style.display = 'none';
+            res_container.style.opacity = '1';
+        }
+
+        let lastSchema = "";
+        let lastN = 12;
+        let lastP = 14;
+        let lastDistributed = false;
+
+        function calculate() {
+            let schema = "";
+            let N = 0;
+            let P = parseInt(in_poles.value) || 0;
+            let isSPS = in_layer.value === 'single';
+            let shortening = parseInt(in_shortening.value) || 0;
+            let isDistributed = false;
+            let Y_D = in_conn.value;
+            let naming = el('in-phases').value;
+
+            hideError();
+
+            if (isCustomMode) {
+                let raw = in_custom.value.replace(/\s+/g, '');
+                let mapped = raw
+                    .replace(/U/g,'A').replace(/u/g,'a')
+                    .replace(/V/g,'B').replace(/v/g,'b')
+                    .replace(/W/g,'C').replace(/w/g,'c');
+                
+                if (mapped.includes('|')) {
+                    isDistributed = true;
+                    let parts = mapped.split('|').filter(s => s.length > 0);
+                    N = parts.length;
+                    schema = mapped;
+                } else {
+                    let cleaned = mapped.replace(/\//g,'');
+                    N = cleaned.length;
+                    schema = cleaned;
+                }
+                
+                if (N === 0) return showError(I18N[currentLang].errUnbal);
+                
+            } else {
+                N = parseInt(in_slots.value) || 0;
+                
+                if (N < 3 || N % 3 !== 0) return showError(I18N[currentLang].errDiv3);
+                if (P < 2 || P % 2 !== 0) return showError(I18N[currentLang].errPoles);
+                if (N === P) return showError(I18N[currentLang].errEqual);
+
+                let Lochzahl = N / (3 * P);
+                isDistributed = Lochzahl >= 1;
+
+                if (isDistributed && !isSPS) {
+                    group_shortening.style.display = 'block';
+                } else {
+                    group_shortening.style.display = 'none';
+                    shortening = 0;
+                }
+                in_layer.disabled = false;
+
+                let Winkel = 180 * P / N;
+                let summe = 0;
+                let a=0, b=0, c=0, A=0, B=0, C=0;
+
+                if (!isDistributed) {
+                    for (let i = 0; i < N; i++) {
+                        if (i % 2 !== 0 && isSPS) {
+                            schema += "-";
+                        } else {
+                            if (summe >= 330 || summe < 30) { schema += "A"; A++; }
+                            else if (summe >= 30 && summe < 90) { schema += "b"; b++; }
+                            else if (summe >= 90 && summe < 150) { schema += "C"; C++; }
+                            else if (summe >= 150 && summe < 210) { schema += "a"; a++; }
+                            else if (summe >= 210 && summe < 270) { schema += "B"; B++; }
+                            else if (summe >= 270 && summe < 330) { schema += "c"; c++; }
+                        }
+                        summe = (summe + Winkel) % 360;
+                    }
+                } else {
+                    for (let i = 0; i < N; i++) {
+                        if (summe >= 330 || summe < 30) { schema += "A"; A++; }
+                        else if (summe >= 30 && summe < 90) { schema += "b"; b++; }
+                        else if (summe >= 90 && summe < 150) { schema += "C"; C++; }
+                        else if (summe >= 150 && summe < 210) { schema += "a"; a++; }
+                        else if (summe >= 210 && summe < 270) { schema += "B"; B++; }
+                        else if (summe >= 270 && summe < 330) { schema += "c"; c++; }
+                        schema += "|";
+                        summe = (summe + Winkel) % 360;
+                    }
+
+                    if (!isSPS) {
+                        let parts = schema.split('|').filter(s => s.length > 0);
+                        let topLayer = "";
+                        let bottomLayer = "";
+                        for (let i=0; i < parts.length; i++) {
+                            topLayer += parts[i][0];
+                            bottomLayer += parts[i][0];
+                        }
+                        if (shortening > 0) {
+                            for (let i=0; i < shortening; i++) {
+                                let temp = topLayer[0];
+                                topLayer = topLayer.substring(1) + temp;
+                            }
+                        }
+                        schema = "";
+                        for (let i=0; i < parts.length; i++) {
+                            schema += bottomLayer[i] + topLayer[i] + '|';
+                        }
+                    }
+                }
+
+                if (a === b && a === c && A === B && A === C && schema.includes('a') && schema.includes('A')) {
+                    while(schema.charAt(schema.length-1) === 'a' || schema.charAt(schema.length-1) === 'A') {
+                        schema = schema.charAt(schema.length-1) + schema.slice(0, -1);
+                    }
+                }
+                if (schema.charAt(0) === "a" && shortening === 0) {
+                    schema = schema.replace(/a/g, 'x').replace(/b/g, 'y').replace(/c/g, 'z')
+                                   .replace(/A/g, 'a').replace(/B/g, 'b').replace(/C/g, 'c')
+                                   .replace(/x/g, 'A').replace(/y/g, 'B').replace(/z/g, 'C');
+                }
+                if (schema.search(/[bB]/) > schema.search(/[cC]/) && shortening === 0) {
+                    schema = schema.replace(/b/g, 'x').replace(/c/g, 'y')
+                                   .replace(/x/g, 'c').replace(/y/g, 'b')
+                                   .replace(/B/g, 'x').replace(/C/g, 'y')
+                                   .replace(/x/g, 'C').replace(/y/g, 'B');
+                }
+            }
+
+            // Centralized Legacy Logic: Distributed Winding has NO valid Connection visualization. Hide it.
+            if (isDistributed) {
+                group_conn.style.display = 'none';
+            } else {
+                group_conn.style.display = 'block';
+            }
+
+            let valid = true;
+            if (isDistributed) {
+                let cA = (schema.match(/A/g) || []).length;
+                let cB = (schema.match(/B/g) || []).length;
+                let cC = (schema.match(/C/g) || []).length;
+                let ca = (schema.match(/a/g) || []).length;
+                let cb = (schema.match(/b/g) || []).length;
+                let cc = (schema.match(/c/g) || []).length;
+                if (cA !== cB || cA !== cC || ca !== cb || ca !== cc) valid = false;
+            } else {
+                let lc = [...schema];
+                let cA = lc.filter(x=>x==='A').length;
+                let cB = lc.filter(x=>x==='B').length;
+                let cC = lc.filter(x=>x==='C').length;
+                let ca = lc.filter(x=>x==='a').length;
+                let cb = lc.filter(x=>x==='b').length;
+                let cc = lc.filter(x=>x==='c').length;
+                if (cA !== cB || cA !== cC || ca !== cb || ca !== cc) valid = false;
+            }
+
+            if (!valid && !isCustomMode) return showError(I18N[currentLang].errUnbal + " (" + schema + ")");
+
+            currentTurns = getTurnsArray();
+            let workingP = parseInt(in_poles.value);
+            let workingData = calcWF(schema, isDistributed, N, workingP, currentTurns);
+            
+            let wfDisplay = workingData.wf1;
+            let statorD = parseFloat(in_stator_d.value);
+            let slotB = parseFloat(in_slot_b.value);
+            if (chk_slot_factor.checked && statorD > 0 && slotB > 0) {
+                let h = workingP / 2;
+                wfDisplay *= Math.sin(h * slotB / statorD) / (h * slotB / statorD);
+            }
+            let skewVal = parseFloat(in_skew.value);
+            if (chk_skew.checked && skewVal > 0) {
+                let h = workingP / 2;
+                wfDisplay *= Math.sin(skewVal * Math.PI * h / N) / (skewVal * Math.PI * h / N);
+            }
+            wfDisplay = Math.round(wfDisplay * 100000) / 100000;
+
+            if (workingData.unbalanced && !isCustomMode) {
+                el('val-wf').innerText = I18N[currentLang].errUnbalWF;
+                el('val-wf').style.color = 'var(--phase-a)';
+            } else {
+                el('val-wf').innerText = wfDisplay.toFixed(5);
+                el('val-wf').style.color = 'var(--text)';
+            }
+            
+            let currentLcm = lcm(N, P);
+            el('val-cogging').innerText = currentLcm;
+            el('lbl-lcm-formula').innerText = `LCM(${N}, ${P})`;
+            
+            el('val-schema').innerHTML = buildSchemaDOM(schema, naming);
+            
+            generateWFTable(schema, isDistributed, N);
+
+            lastN = N;
+            lastP = P;
+            lastDistributed = isDistributed;
+
+            if (schema !== lastSchema) {
+                lastSchema = schema;
+                canvas.style.opacity = '0';
+                canvas2.style.opacity = '0';
+                setTimeout(() => {
+                    requestAnimationFrame(() => renderStator(N, P, schema, isDistributed, Y_D, naming));
+                    canvas.style.opacity = '1';
+                    canvas2.style.opacity = '1';
+                }, 150);
+            } else {
+                 requestAnimationFrame(() => renderStator(N, P, schema, isDistributed, Y_D, naming));
+                 canvas.style.opacity = '1';
+                 canvas2.style.opacity = '1';
+            }
+        }
+
+        // --- THE FULL LEGACY 1:1 STATOR ENGINE RESTORED ---
+        function renderStator(N, P, schema, isDistributed, Y_D, naming = 'ABC') {
+            const scale = window.devicePixelRatio || 1;
+            
+            // Accommodate side padding for drawing area
+            const cw = visContainer.clientWidth - 32; 
+            
+            // Set base circular canvas size logic
+            const ch = Math.min(cw, window.innerHeight * 0.55);
+            canvas.style.width = cw + 'px';
+            canvas.style.height = ch + 'px';
+            canvas.width = cw * scale;
+            canvas.height = ch * scale;
+            
+            const ctx = canvas.getContext('2d');
+            
+            // Circular Scaling (700x700 hardcoded in legacy)
+            const minScale = Math.min(cw * scale / 700, ch * scale / 700);
+            const offsetX = (cw * scale - 700 * minScale) / 2;
+            const offsetY = (ch * scale - 700 * minScale) / 2;
+            
+            ctx.setTransform(minScale, 0, 0, minScale, offsetX, offsetY);
+            ctx.clearRect(0, 0, 700, 700);
+
+            // Legacy Colors adapted for Light/Dark
+            const statorFill = isLightMode ? "rgb(186,186,186)" : "rgb(60,60,65)";
+            const holeFill = isLightMode ? "#f5f7fa" : "#0a0a0a";
+            const textColor = isLightMode ? "#0f172a" : "#e0e0e0";
+            const inputBg = isLightMode ? "#ffffff" : "#151515";
+            
+            let textStart = currentLang === 'de' ? 'Anfang ' : 'Start ';
+            let textEnd = currentLang === 'de' ? 'Ende ' : 'End ';
+            
+            function farbe_zu(buchstabe) {
+                let b = buchstabe.toLowerCase();
+                if (b === 'a') return isLightMode ? '#EA0000' : '#ff3366';
+                if (b === 'b') return isLightMode ? '#008AE6' : '#33ccff';
+                if (b === 'c') return isLightMode ? '#00CA00' : '#33ff99';
+                return '#000000';
+            }
+
+            function getPhaseName(p, naming) {
+                let upper = p.toUpperCase();
+                if(naming === 'UVW') {
+                    if(upper === 'A') return 'U';
+                    if(upper === 'B') return 'V';
+                    if(upper === 'C') return 'W';
+                }
+                return upper;
+            }
+
+            // 1. Inner Circle Background
+            ctx.fillStyle = statorFill;
+            ctx.beginPath();
+            ctx.arc(350, 350, 148, 0, Math.PI * 2, true);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.fillStyle = holeFill;
+            ctx.beginPath();
+            ctx.arc(350, 350, 112, 0, Math.PI * 2, true);
+            ctx.closePath();
+            ctx.fill();
+
+            let hammerHeight = 255 - (N / 3);
+            let hammerWidth = 950 / N;
+            if (N === 6) hammerWidth += 3;
+            else if (N === 3) hammerWidth -= 80;
+
+            let s_basis = 100;
+            if (N > 21 && N <= 36) s_basis += (N / 3.8);
+
+            let ebene = {
+                'a1': 40 + s_basis, 'a2': 35 + s_basis,
+                'b1': 30 + s_basis, 'b2': 25 + s_basis,
+                'c1': 20 + s_basis, 'c2': 15 + s_basis
+            };
+
+            ctx.translate(350, 350);
+            ctx.rotate(270 * Math.PI / 180);
+
+            // 2. Draw Hammers (Teeth)
+            for (let i = 0; i < N; i++) {
+                ctx.beginPath();
+                ctx.moveTo(130, hammerWidth / 4);
+                ctx.lineTo(Math.round(hammerHeight / 1.03), hammerWidth / 4);
+                ctx.lineTo(Math.round(hammerHeight / 1.025), hammerWidth / 2);
+                ctx.lineTo(hammerHeight, hammerWidth / 2);
+                ctx.lineTo(hammerHeight + hammerWidth / 20, 0);
+                ctx.lineTo(hammerHeight, -hammerWidth / 2);
+                ctx.lineTo(Math.round(hammerHeight / 1.025), -hammerWidth / 2);
+                ctx.lineTo(Math.round(hammerHeight / 1.03), -hammerWidth / 4);
+                ctx.lineTo(130, -hammerWidth / 4);
+                ctx.textBaseline = 'middle';
+                
+                ctx.fillStyle = statorFill;
+                ctx.fill();
+                ctx.rotate(Math.PI / (N / 2));
+            }
+
+            // 3. Draw Magnets (Outside Ring)
+            let Pcolor1 = isLightMode ? "rgba(255,0,0,0.3)" : "rgba(255,50,80,0.4)";
+            let Pcolor2 = isLightMode ? "rgba(0,0,255,0.3)" : "rgba(50,150,255,0.4)";
+            let Pring = isLightMode ? "rgba(68,68,68,0.3)" : "rgba(200,200,200,0.2)";
+
+            for (let i = 0; i < P; i++) {
+                ctx.beginPath();
+                ctx.lineWidth = 10;
+                ctx.arc(0, 0, 301, Math.PI / (P / 2), -Math.PI / (P / 2), true);
+                ctx.strokeStyle = Pring;
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.lineWidth = 18;
+                ctx.arc(0, 0, 287, (Math.PI / (P / 2) / 200) * 67, (-Math.PI / (P / 2) / 200) * 67, true);
+                ctx.strokeStyle = (i % 2 !== 0) ? Pcolor2 : Pcolor1;
+                ctx.stroke();
+                ctx.rotate(Math.PI / (P / 2));
+            }
+
+            // 4. Draw Scheme Windings
+            if (!isDistributed) {
+                // Disable linear canvas for concentrated windings
+                canvas2.style.display = "none";
+                
+                let f_u = { 'a': false, 'b': false, 'c': false };
+                let ebenen_verlauf = { 'a1': false, 'a2': false, 'b1': false, 'b2': false, 'c1': false, 'c2': false };
+                let enden = [0, '', '', 'abc'];
+                let das_nicht = false;
+                let erstefarbe = false;
+                let Y_D_legacy = Y_D === '-' ? false : Y_D; // Legacy mapping for D
+                let abc = 'abc';
+
+                for (let i = 0; i < N; i++) {
+                    let char = schema[i];
+                    if (char === '-' || char === '/') {
+                        ctx.rotate(Math.PI / (N / 2));
+                        continue;
+                    }
+
+                    let lower = char.toLowerCase();
+                    let wire_color = farbe_zu(lower);
+                    let richtung = (char === lower) ? -15 : 15;
+                    let schon_beschriftet = false;
+
+                    for (let y = 0; y < 75; y += 15) {
+                        das_nicht = false;
+                        ctx.beginPath();
+
+                        if (richtung === 15) {
+                            ctx.moveTo(156 + y, (hammerWidth / 4) + 2);
+                            ctx.lineTo(156 + y + richtung, -(hammerWidth / 4) - 2);
+
+                            if (y === 0) {
+                                ctx.moveTo(156 + y, -(hammerWidth / 4) + 2);
+                                ctx.lineTo(156 + y, -(hammerWidth / 4) - 2);
+
+                                if (f_u[lower] === false) {
+                                    f_u[lower] = schema.toLowerCase().lastIndexOf(lower);
+                                    ctx.moveTo(156 + y, -(hammerWidth / 4) + 2);
+                                    ctx.lineTo(156 + y, -(hammerWidth / 3.5) - 5);
+                                    ctx.moveTo(154 + y, -(hammerWidth / 3.5) - 5);
+                                    ctx.lineTo(300, -(hammerWidth / 3.5) - 5);
+                                    ctx.font = "16px 'Inter'";
+                                    ctx.fillStyle = textColor;
+                                    if (N !== 3) ctx.fillText((i+1) + " " + textStart + getPhaseName(char, naming), 275, 0);
+                                    schon_beschriftet = true;
+                                    ebenen_verlauf[lower + '1'] = false;
+                                    ebenen_verlauf[lower + '2'] = false;
+                                } else {
+                                    let sub_e = ebenen_verlauf[lower + '1'] ? '1' : (ebenen_verlauf[lower + '2'] ? '2' : '1');
+                                    ebenen_verlauf[lower + sub_e] = true;
+                                    ctx.moveTo(156 + y, -(hammerWidth / 4.3) - 2);
+                                    ctx.lineTo(ebene[lower + sub_e] - (18 / N), -(hammerWidth / 4.3) - 2);
+                                    ctx.arc(0, 0, ebene[lower + sub_e], (-Math.PI / N) + 0.001, -Math.PI / N, true);
+                                }
+                            }
+                            if (y === 60) {
+                                ctx.moveTo(171 + y, (hammerWidth / 4) + 2);
+                                ctx.lineTo(171 + y, (hammerWidth / 4) - 2);
+
+                                if (i === f_u[lower]) {
+                                    if (!Y_D_legacy) { // Delta Open End Route
+                                        ctx.moveTo(171 + y, (hammerWidth / 4) - 2);
+                                        ctx.lineTo(300, (hammerWidth / 4) - 2);
+                                        ctx.font = "16px 'Inter'";
+                                        ctx.fillStyle = textColor;
+                                        if (!schon_beschriftet) ctx.fillText((i+1) + " " + textEnd + getPhaseName(char, naming), 275, 0);
+                                    } else if (Y_D_legacy === 'Y') { // Star Connection Point Route
+                                        das_nicht = true;
+                                        ctx.moveTo(171 + y, (hammerWidth / 4.5) - 2);
+                                        ctx.lineTo(171 + y, (hammerWidth / 4) + 5);
+                                        ctx.moveTo(171 + y, (hammerWidth / 4) + 5);
+                                        ctx.lineTo(148, (hammerWidth / 4) + 5);
+                                        enden[1] = lower;
+                                        switch (enden[0]) {
+                                            case 0:
+                                                enden[0] = 1;
+                                                ctx.arc(0, 0, 100, Math.PI / N, (Math.PI / N) + 0.001, false);
+                                                erstefarbe = lower;
+                                                break;
+                                            case 1:
+                                                ctx.lineTo(100, 0);
+                                                enden[0] = 2;
+                                                das_nicht = 'mitte';
+                                                ctx.moveTo(100, 0);
+                                                ctx.lineTo(90, 0);
+                                                break;
+                                            case 2:
+                                                enden[0] = 3;
+                                                ctx.arc(0, 0, 100, (-Math.PI / N) + 0.001, -Math.PI / N, true);
+                                                break;
+                                        }
+                                    }
+                                    ebenen_verlauf[lower + '1'] = false;
+                                    ebenen_verlauf[lower + '2'] = false;
+                                } else {
+                                    let sub_e = !ebenen_verlauf[lower + '1'] ? '1' : (!ebenen_verlauf[lower + '2'] ? '2' : '1');
+                                    if(sub_e === '1') ebenen_verlauf[lower + '2'] = false;
+                                    if(sub_e === '2') ebenen_verlauf[lower + '1'] = false;
+                                    ebenen_verlauf[lower + sub_e] = true;
+
+                                    ctx.moveTo(171 + y, (hammerWidth / 4.5) - 2);
+                                    ctx.lineTo(171 + y, (hammerWidth / 4) + 5);
+                                    ctx.moveTo(171 + y, (hammerWidth / 4) + 5);
+                                    ctx.lineTo(ebene[lower + sub_e] - (18 / N), (hammerWidth / 4) + 5);
+                                    ctx.arc(0, 0, ebene[lower + sub_e], Math.PI / N, (Math.PI / N) + 0.001, false);
+                                }
+                            }
+
+                        } else {
+                            ctx.moveTo(171 + y, (hammerWidth / 4) + 2);
+                            ctx.lineTo(171 + y + richtung, -(hammerWidth / 4) - 2);
+
+                            if (y === 0) {
+                                ctx.moveTo(156 + y, (hammerWidth / 4) + 2);
+                                ctx.lineTo(156 + y, (hammerWidth / 4) - 2);
+                                if (f_u[lower] === false) {
+                                    f_u[lower] = schema.toLowerCase().lastIndexOf(lower);
+                                    ctx.moveTo(156 + y, (hammerWidth / 4) + 2);
+                                    ctx.lineTo(156 + y, (hammerWidth / 3.5) + 5);
+                                    ctx.moveTo(154 + y, (hammerWidth / 3.5) + 5);
+                                    ctx.lineTo(300, (hammerWidth / 3.5) + 5);
+                                    ctx.font = "16px 'Inter'";
+                                    ctx.fillStyle = textColor;
+                                    if (N !== 3) ctx.fillText((i+1) + " " + textStart + getPhaseName(char, naming), 275, 0);
+                                    schon_beschriftet = true;
+                                    ebenen_verlauf[lower + '1'] = false;
+                                    ebenen_verlauf[lower + '2'] = false;
+                                } else {
+                                    let sub_e = ebenen_verlauf[lower + '1'] ? '1' : (ebenen_verlauf[lower + '2'] ? '2' : '1');
+                                    ebenen_verlauf[lower + sub_e] = true;
+                                    ctx.moveTo(156 + y, (hammerWidth / 4.5) + 3);
+                                    ctx.lineTo(ebene[lower + sub_e] - (18 / N), (hammerWidth / 4.5) + 2);
+                                    ctx.lineTo(ebene[lower + sub_e], 0);
+                                    ctx.arc(0, 0, ebene[lower + sub_e], 0, -Math.PI / N, true);
+                                }
+                            }
+                            if (y === 60) {
+                                ctx.moveTo(171 + y, -(hammerWidth / 4) + 2);
+                                ctx.lineTo(171 + y, -(hammerWidth / 4) - 2);
+
+                                if (i === f_u[lower]) {
+                                    if (!Y_D_legacy) { // Delta Open End Route
+                                        ctx.moveTo(171 + y, -(hammerWidth / 4));
+                                        ctx.lineTo(300, -(hammerWidth / 4));
+                                        ctx.font = "16px 'Inter'";
+                                        ctx.fillStyle = textColor;
+                                        if (!schon_beschriftet) ctx.fillText((i+1) + " " + textEnd + getPhaseName(char, naming), 275, 0);
+                                    } else if (Y_D_legacy === 'Y') { // Star Connection Point Route
+                                        das_nicht = true;
+                                        ctx.moveTo(171 + y, -(hammerWidth / 4.5) + 2);
+                                        ctx.lineTo(171 + y, -(hammerWidth / 4) - 5);
+                                        ctx.moveTo(171 + y, -(hammerWidth / 4) - 5);
+                                        ctx.lineTo(148, -(hammerWidth / 4) - 5);
+                                        enden[1] = lower;
+                                        switch (enden[0]) {
+                                            case 0:
+                                                enden[0] = 1;
+                                                ctx.arc(0, 0, 100, Math.PI / N, (Math.PI / N) + 0.001, false);
+                                                erstefarbe = lower;
+                                                break;
+                                            case 1:
+                                                ctx.lineTo(100, 0);
+                                                enden[0] = 2;
+                                                das_nicht = 'mitte';
+                                                ctx.moveTo(100, 0);
+                                                ctx.lineTo(90, 0);
+                                                break;
+                                            case 2:
+                                                enden[0] = 3;
+                                                ctx.arc(0, 0, 100, (-Math.PI / N) + 0.001, -Math.PI / N, true);
+                                                break;
+                                        }
+                                    }
+                                    ebenen_verlauf[lower + '1'] = false;
+                                    ebenen_verlauf[lower + '2'] = false;
+                                } else {
+                                    let sub_e = !ebenen_verlauf[lower + '1'] ? '1' : (!ebenen_verlauf[lower + '2'] ? '2' : '1');
+                                    if(sub_e === '1') ebenen_verlauf[lower + '2'] = false;
+                                    if(sub_e === '2') ebenen_verlauf[lower + '1'] = false;
+                                    ebenen_verlauf[lower + sub_e] = true;
+
+                                    ctx.moveTo(171 + y, -(hammerWidth / 4.5) + 2);
+                                    ctx.lineTo(171 + y, -(hammerWidth / 4) - 5);
+                                    ctx.moveTo(171 + y, -(hammerWidth / 4) - 5);
+                                    ctx.lineTo(ebene[lower + sub_e] - (18 / N), -(hammerWidth / 4) - 5);
+                                    ctx.moveTo(ebene[lower + sub_e] - (18 / N), -(hammerWidth / 4) - 5);
+                                    ctx.lineTo(ebene[lower + sub_e], 0);
+                                    ctx.arc(0, 0, ebene[lower + sub_e], 0, (Math.PI / N) + 0.001, false);
+                                }
+                            }
+                        }
+
+                        ctx.strokeStyle = wire_color;
+                        ctx.lineWidth = 4;
+                        if (N > 42) ctx.lineWidth = 2;
+                        if (N > 24 && N <= 42) ctx.lineWidth = 3;
+                        ctx.stroke();
+                    }
+
+                    // Y Connection Star Point Logic
+                    if (!das_nicht || das_nicht === 'mitte') {
+                        if (das_nicht !== 'mitte') {
+                            ctx.beginPath();
+                            switch (enden[0]) {
+                                case 1:
+                                    ctx.arc(0, 0, 100, -Math.PI / N, Math.PI / N, false);
+                                    ctx.strokeStyle = farbe_zu(enden[1]);
+                                    break;
+                                case 2:
+                                    ctx.arc(0, 0, 100, Math.PI / N, -Math.PI / N, true);
+                                    ctx.strokeStyle = farbe_zu(enden[3]);
+                                    break;
+                            }
+                            ctx.stroke();
+                            enden[3] = enden[3].replace(enden[1], '');
+                        } else {
+                            ctx.beginPath();
+                            ctx.arc(0, 0, 100, -Math.PI / N, 0, false);
+                            ctx.moveTo(100, -4);
+                            ctx.lineTo(90, -4);
+                            ctx.strokeStyle = farbe_zu(erstefarbe);
+                            ctx.stroke();
+
+                            ctx.beginPath();
+                            ctx.arc(0, 0, 100, Math.PI / N, 0, true);
+                            ctx.moveTo(100, 4);
+                            ctx.lineTo(90, 4);
+                            let farbe2 = abc.replace(erstefarbe, '').replace(enden[1], '');
+                            ctx.strokeStyle = farbe_zu(farbe2);
+                            ctx.stroke();
+                            enden[3] = enden[3].replace(enden[1], '');
+                        }
+                    }
+
+                    // Connecting Tracks
+                    for (let z = 1; z < 3; z++) {
+                        for (let x = 0; x < abc.length; x++) {
+                            if (ebenen_verlauf[abc[x] + z] && abc[x] !== lower) {
+                                ctx.beginPath();
+                                ctx.arc(0, 0, ebene[abc[x] + z], Math.PI / N, -Math.PI / N, true);
+                                ctx.strokeStyle = farbe_zu(abc[x]);
+                                ctx.stroke();
+                            }
+                        }
+                    }
+
+                    // Stator Tooth Number Labels
+                    ctx.font = "12px 'Inter'";
+                    ctx.fillStyle = textColor;
+                    if (N <= 6) {
+                        ctx.fillText(i + 1, hammerHeight + 14, 0);
+                    } else {
+                        ctx.fillText(i + 1, hammerHeight + 7, 0);
+                    }
+
+                    ctx.rotate(Math.PI / (N / 2));
+                }
+            } else {
+                // Circular Map for Distributed
+                let Nutbelag = schema.split('|').filter(s => s);
+                let NutCount = Nutbelag.length;
+                
+                ctx.rotate(-Math.PI / (NutCount / 2));
+                for (let y = 0; y < 2; y++) {
+                    if (Nutbelag[0] && Nutbelag[0][y]) {
+                        ctx.rotate((Math.PI / (NutCount / 2)) / 2);
+                        for (let i = 0; i < N; i++) {
+                            if(!Nutbelag[i] || !Nutbelag[i][y] || Nutbelag[i][y] === '-') {
+                                ctx.rotate(Math.PI / (NutCount / 2));
+                                continue;
+                            }
+                            ctx.beginPath();
+                            ctx.lineWidth = 4;
+                            let radiusx = (y === 0) ? (Nutbelag[i][1] && Nutbelag[i][1] !== '-' ? 170 : 200) : 222;
+                            if (Nutbelag[i].length === 1) radiusx = 200; // Centered if single layer
+                                
+                            ctx.arc(0, radiusx, 10, 0.001, 0, false);
+                            let phaseChar = Nutbelag[i][y].toLowerCase();
+                            
+                            ctx.strokeStyle = farbe_zu(phaseChar);
+                            ctx.font = "20px 'Inter'";
+                            ctx.fillStyle = textColor;
+                            
+                            if (Nutbelag[i][y] === phaseChar) {
+                                ctx.fillText('-', -4, radiusx - 2);
+                            } else {
+                                ctx.fillText('+', -8, radiusx - 2);
+                            }
+                            
+                            ctx.stroke();
+                            ctx.rotate(Math.PI / (NutCount / 2));
+                        }
+                        ctx.rotate(-(Math.PI / (NutCount / 2)) / 2);
+                    }
+                }
+
+                // LINEAR DIAGRAM (StatorCanvas2) LOGIC
+                canvas2.style.display = "block";
+                
+                const xzBelag = schema.split('|').filter(s => s);
+                const ch2 = 50 * xzBelag.length;
+                
+                canvas2.style.width = cw + 'px';
+                
+                const minScale2 = cw * scale / 700;
+                canvas2.height = ch2 * minScale2;
+                canvas2.width = cw * scale;
+                canvas2.style.height = (ch2 * minScale2 / scale) + 'px';
+
+                const ctx2 = canvas2.getContext('2d');
+                ctx2.setTransform(minScale2, 0, 0, minScale2, 0, 0);
+                ctx2.clearRect(0, 0, 700, ch2);
+
+                let startposTop = 50;
+                let startposLeft = 325;
+                let verkuerzungValue = parseInt(in_shortening.value) || 0;
+                let abstand = (N / P) - verkuerzungValue;
+                
+                let schaltbreite = abstand * 40;
+                if(schaltbreite > 350) schaltbreite = 350;
+                if(schaltbreite < 100) schaltbreite = 100;
+
+                let einschichtrichtung = (N / P) / 3;
+                if(!xzBelag[0][1] && einschichtrichtung % 2 === 0 && einschichtrichtung !== 1) {
+                    abstand = abstand - (einschichtrichtung / 2); 
+                }
+                
+                let EinCount = { 'a': 0, 'b': 0, 'c': 0 };
+
+                for(let i=0; i < xzBelag.length; i++) {
+                    ctx2.fillStyle = inputBg;
+                    ctx2.fillRect(startposLeft, startposTop, 50, 25);
+                    ctx2.fillStyle = textColor;
+                    ctx2.font = "16px 'Inter'";
+                    
+                    let slotStr = (i + 1).toString();
+                    let textOffsetX = slotStr.length > 1 ? 15 : 20;
+                    ctx2.fillText(slotStr, startposLeft + textOffsetX, startposTop + 18);
+                    
+                    for(let z=0; z<2; z++) {
+                        if(xzBelag[i][z] && xzBelag[i][z] !== '-') {
+                            let topposV = startposTop;
+                            if(z === 0) {
+                                topposV -= (xzBelag[i][1] && xzBelag[i][1] !== '-') ? 17 : 12;
+                            } else {
+                                topposV -= 8;
+                            }
+                            
+                            ctx2.lineWidth = 3; 
+                            ctx2.beginPath();
+                            ctx2.moveTo(startposLeft, topposV);
+                            ctx2.lineTo(startposLeft + 50, topposV);
+                            
+                            let phaseChar = xzBelag[i][z];
+                            let isLower = phaseChar === phaseChar.toLowerCase();
+                            
+                            if(!isLower) {
+                                ctx2.moveTo(startposLeft + 32, topposV - 4);
+                                ctx2.lineTo(startposLeft + 38, topposV);
+                                ctx2.moveTo(startposLeft + 32, topposV + 4);
+                                ctx2.lineTo(startposLeft + 38, topposV);
+                            } else {
+                                ctx2.moveTo(startposLeft + 18, topposV - 4);
+                                ctx2.lineTo(startposLeft + 12, topposV);
+                                ctx2.moveTo(startposLeft + 18, topposV + 4);
+                                ctx2.lineTo(startposLeft + 12, topposV);				
+                            }
+                            
+                            if(xzBelag[i][1] && xzBelag[i][1] !== '-') {
+                                if(z === 0) {
+                                    ctx2.moveTo(startposLeft + 50, topposV);
+                                    ctx2.lineTo(startposLeft + schaltbreite, topposV - (((abstand * 50) - 9) / 2));
+                                    ctx2.moveTo(startposLeft, topposV);						
+                                    ctx2.lineTo(startposLeft - schaltbreite + 50, topposV - (((abstand * 50) - 9) / 2));
+                                } else {
+                                    ctx2.moveTo(startposLeft + 50, topposV);
+                                    ctx2.lineTo(startposLeft + schaltbreite, topposV + (((abstand * 50) - 9) / 2));
+                                    ctx2.moveTo(startposLeft, topposV);
+                                    ctx2.lineTo(startposLeft - schaltbreite + 50, topposV + (((abstand * 50) - 9) / 2));
+                                }
+                            } else {
+                                let phaseLower = phaseChar.toLowerCase();
+                                if(einschichtrichtung % 2 === 0 && einschichtrichtung !== 1) {
+                                    if(EinCount[phaseLower] >= einschichtrichtung / 2) {
+                                        ctx2.moveTo(startposLeft + 50, topposV);
+                                        ctx2.lineTo(startposLeft + schaltbreite, topposV + ((abstand * 50) / 2));
+                                        ctx2.moveTo(startposLeft, topposV);
+                                        ctx2.lineTo(startposLeft - schaltbreite + 50, topposV + ((abstand * 50) / 2));
+                                    } else {
+                                        ctx2.moveTo(startposLeft + 50, topposV);
+                                        ctx2.lineTo(startposLeft + schaltbreite, topposV - ((abstand * 50) / 2));
+                                        ctx2.moveTo(startposLeft, topposV);
+                                        ctx2.lineTo(startposLeft - schaltbreite + 50, topposV - ((abstand * 50) / 2));
+                                    }
+                                    EinCount[phaseLower]++;
+                                    if(EinCount[phaseLower] === einschichtrichtung) EinCount[phaseLower] = 0;
+                                } else {
+                                    if(!isLower) {
+                                        ctx2.moveTo(startposLeft + 50, topposV);
+                                        ctx2.lineTo(startposLeft + schaltbreite, topposV + ((abstand * 50) / 2));
+                                        ctx2.moveTo(startposLeft, topposV);
+                                        ctx2.lineTo(startposLeft - schaltbreite + 50, topposV + ((abstand * 50) / 2));
+                                    } else {
+                                        ctx2.moveTo(startposLeft + 50, topposV);
+                                        ctx2.lineTo(startposLeft + schaltbreite, topposV - ((abstand * 50) / 2));
+                                        ctx2.moveTo(startposLeft, topposV);
+                                        ctx2.lineTo(startposLeft - schaltbreite + 50, topposV - ((abstand * 50) / 2));
+                                    }
+                                }
+                            } 
+                            ctx2.strokeStyle = farbe_zu(phaseChar);
+                            ctx2.stroke();
+                        }
+                    }
+                    startposTop += 50;
+                }
+            }
+        }
+
+        in_slots.addEventListener('input', calculate);
+        in_poles.addEventListener('input', calculate);
+        in_layer.addEventListener('change', calculate);
+        in_shortening.addEventListener('input', calculate);
+        in_conn.addEventListener('change', calculate);
+        in_phases.addEventListener('change', calculate);
+        in_custom.addEventListener('input', calculate);
+        in_stator_d.addEventListener('input', () => { calculate(); });
+        in_slot_b.addEventListener('input', () => { calculate(); });
+        chk_slot_factor.addEventListener('change', () => { calculate(); });
+        in_skew.addEventListener('input', () => { calculate(); });
+        chk_skew.addEventListener('change', () => { calculate(); });
+
+        el('val-schema').addEventListener('input', (e) => {
+            if (e.target.classList.contains('turn-input')) {
+                currentTurns[e.target.dataset.idx] = parseInt(e.target.value) || 1;
+                calculate();
+            }
+        });
+
+        window.addEventListener('resize', () => {
+             requestAnimationFrame(() => renderStator(
+                 lastN, 
+                 lastP, 
+                 lastSchema, 
+                 lastDistributed,
+                 in_conn.value,
+                 in_phases.value
+             ));
+        });
+
+        // Initialize translations
+        setLang('en');
+    </script>
+</body>
+</html>
