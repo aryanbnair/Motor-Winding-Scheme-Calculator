@@ -65,4 +65,4 @@ These depend on additional geometric inputs such as stator diameter, slot openin
 
 Open the HTML file in a browser and then enter the machine parameter
 
-# Since bavaria-direct.co.za has gone offline, I have decided to port their calculator. Thanks to Christo for the files.
+## Since bavaria-direct.co.za has gone offline, I have decided to port their calculator. Thanks to Christo for the files.
