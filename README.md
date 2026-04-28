@@ -1,6 +1,6 @@
 # Motor Winding Scheme Calculator
 
-A single-file HTML tool for generating and evaluating three-phase winding schemes for electric machine stators. It calculates winding factors, supports custom schemas, visualizes slot/phase allocation, and renders a stator diagram directly in the browser.
+A tool for generating and evaluating three-phase winding schemes for electric machine stators. It calculates winding factors, supports custom schemas, visualizes slot/phase allocation, and renders a stator diagram directly in the browser.
 
 ## Features
 
